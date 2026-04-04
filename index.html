@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NU Sales Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; }
+    h2 { color: #1a56a0; margin-bottom: 12px; font-size: 18px; }
+    #timestamp { font-size: 12px; color: #666; margin-bottom: 12px; }
+    #table-wrap { overflow-x: auto; width: 100%; max-width: 1100px; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; white-space: nowrap; }
+    .h-title { background: #1a56a0; color: #fff; font-weight: 700; font-size: 14px; }
+    .h-sub   { background: #2271c3; color: #fff; font-weight: 600; }
+    .h-col   { background: #2e86de; color: #fff; font-weight: 500; }
+    .store   { text-align: left; font-weight: 500; background: #f7f9fc; }
+    .total   { background: #1a56a0; color: #fff; font-weight: 700; }
+    .red-pct { background: #e74c3c; color: #fff; font-weight: 700; }
+    #share-btn {
+      margin-top: 16px;
+      padding: 12px 32px;
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #share-btn:active { opacity: 0.8; }
+    #loading { font-size: 14px; color: #555; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+<h2>North Upper Sales</h2>
+<div id="timestamp"></div>
+<div id="loading">جاري تحميل البيانات...</div>
+<div id="table-wrap" style="display:none;">
+  <table id="sales-table"></table>
+</div>
+
+<button id="share-btn" style="display:none;" onclick="shareSnapshot()">
+  📤 Share
+</button>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznhQJGw5WILq9GvX6LDHfc6EdWebjsPse3QW5eBTf2KOjHksshEQsWAL0m2QIVpvdv/exec";
+
+  async function loadData() {
+    try {
+      const res = await fetch(APPS_SCRIPT_URL);
+      const json = await res.json();
+      const rows = json.sales;
+
+      document.getElementById("timestamp").textContent = "Last updated: " + new Date(json.timestamp).toLocaleString();
+      document.getElementById("loading").style.display = "none";
+
+      buildTable(rows);
+
+      document.getElementById("table-wrap").style.display = "block";
+      document.getElementById("share-btn").style.display = "flex";
+    } catch (err) {
+      document.getElementById("loading").textContent = "فيه مشكلة في تحميل البيانات.";
+    }
+  }
+
+  function buildTable(rows) {
+    const table = document.getElementById("sales-table");
+    table.innerHTML = "";
+
+    rows.forEach((row, i) => {
+      const tr = document.createElement("tr");
+      row.forEach((cell, j) => {
+        const el = document.createElement(i < 3 ? "th" : "td");
+        el.textContent = cell;
+
+        if (i === 0) el.className = "h-title";
+        else if (i === 1) el.className = "h-sub";
+        else if (i === 2) el.className = "h-col";
+        else if (i === rows.length - 1) {
+          const val = cell.toString();
+          el.className = (val === "0%" || val === "0" ) ? "red-pct" : "total";
+        } else {
+          if (j === 0) el.className = "store";
+        }
+
+        if (i >= 3 && i < rows.length - 1 && j === 0) el.className = "store";
+
+        tr.appendChild(el);
+      });
+      table.appendChild(tr);
+    });
+  }
+
+  async function shareSnapshot() {
+    const tableWrap = document.getElementById("table-wrap");
+
+    if (navigator.share) {
+      try {
+        const html2canvas = await loadHtml2Canvas();
+        const canvas = await html2canvas(tableWrap, { scale: 2, useCORS: true });
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
+          await navigator.share({
+            files: [file],
+            title: "NU Sales Snapshot",
+          });
+        }, "image/png");
+      } catch (err) {
+        alert("مش قادر يعمل share: " + err.message);
+      }
+    } else {
+      alert("الجهاز مش بيدعم Share. جرب من الموبايل.");
+    }
+  }
+
+  function loadHtml2Canvas() {
+    return new Promise((resolve, reject) => {
+      if (window.html2canvas) return resolve(window.html2canvas);
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      script.onload = () => resolve(window.html2canvas);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  loadData();
+</script>
+</body>
+</html>
