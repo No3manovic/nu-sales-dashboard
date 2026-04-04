@@ -7,9 +7,9 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; }
-    h2 { color: #1a56a0; margin-bottom: 12px; font-size: 18px; }
+    h2 { color: #1a56a0; margin-bottom: 6px; font-size: 18px; }
     #timestamp { font-size: 12px; color: #666; margin-bottom: 12px; }
-    #table-wrap { overflow-x: auto; width: 100%; max-width: 1100px; }
+    #table-wrap { overflow-x: auto; width: 100%; max-width: 1200px; }
     table { border-collapse: collapse; width: 100%; font-size: 12px; background: #fff; }
     th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; white-space: nowrap; }
     .h-title { background: #1a56a0; color: #fff; font-weight: 700; font-size: 14px; }
@@ -28,11 +28,7 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
-    #share-btn:active { opacity: 0.8; }
     #loading { font-size: 14px; color: #555; margin-top: 40px; }
   </style>
 </head>
@@ -44,13 +40,36 @@
 <div id="table-wrap" style="display:none;">
   <table id="sales-table"></table>
 </div>
-
-<button id="share-btn" style="display:none;" onclick="shareSnapshot()">
-  📤 Share
-</button>
+<button id="share-btn" style="display:none;" onclick="shareSnapshot()">📤 Share</button>
 
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznhQJGw5WILq9GvX6LDHfc6EdWebjsPse3QW5eBTf2KOjHksshEQsWAL0m2QIVpvdv/exec";
+
+  function formatCell(val, rowIndex, colIndex, totalRows) {
+    if (val === null || val === "") return "";
+
+    if (rowIndex === 1 && colIndex === 0) {
+      const d = new Date(val);
+      if (!isNaN(d)) return d.toLocaleDateString("en-GB");
+      return val;
+    }
+
+    if ((rowIndex >= 3 && rowIndex < totalRows - 1) || rowIndex === totalRows - 1) {
+      if (colIndex === 3 || colIndex === 6) {
+        const num = parseFloat(val);
+        if (!isNaN(num) && num <= 1) return Math.round(num * 100) + "%";
+        if (!isNaN(num)) return Math.round(num) + "%";
+      }
+    }
+
+    return val;
+  }
+
+  function isRedCell(val, rowIndex, colIndex, totalRows) {
+    if (rowIndex !== totalRows - 1) return false;
+    const num = parseFloat(val);
+    return !isNaN(num) && num === 0;
+  }
 
   async function loadData() {
     try {
@@ -58,13 +77,14 @@
       const json = await res.json();
       const rows = json.sales;
 
-      document.getElementById("timestamp").textContent = "Last updated: " + new Date(json.timestamp).toLocaleString();
+      const d = new Date(json.timestamp);
+      document.getElementById("timestamp").textContent = "Last updated: " + d.toLocaleString("en-GB");
       document.getElementById("loading").style.display = "none";
 
       buildTable(rows);
 
       document.getElementById("table-wrap").style.display = "block";
-      document.getElementById("share-btn").style.display = "flex";
+      document.getElementById("share-btn").style.display = "inline-block";
     } catch (err) {
       document.getElementById("loading").textContent = "فيه مشكلة في تحميل البيانات.";
     }
@@ -73,24 +93,23 @@
   function buildTable(rows) {
     const table = document.getElementById("sales-table");
     table.innerHTML = "";
+    const totalRows = rows.length;
 
     rows.forEach((row, i) => {
       const tr = document.createElement("tr");
       row.forEach((cell, j) => {
-        const el = document.createElement(i < 3 ? "th" : "td");
-        el.textContent = cell;
+        const isHeader = i < 3;
+        const el = document.createElement(isHeader ? "th" : "td");
+        el.textContent = formatCell(cell, i, j, totalRows);
 
         if (i === 0) el.className = "h-title";
         else if (i === 1) el.className = "h-sub";
         else if (i === 2) el.className = "h-col";
-        else if (i === rows.length - 1) {
-          const val = cell.toString();
-          el.className = (val === "0%" || val === "0" ) ? "red-pct" : "total";
+        else if (i === totalRows - 1) {
+          el.className = isRedCell(cell, i, j, totalRows) ? "red-pct" : "total";
         } else {
-          if (j === 0) el.className = "store";
+          el.className = j === 0 ? "store" : "";
         }
-
-        if (i >= 3 && i < rows.length - 1 && j === 0) el.className = "store";
 
         tr.appendChild(el);
       });
@@ -100,34 +119,30 @@
 
   async function shareSnapshot() {
     const tableWrap = document.getElementById("table-wrap");
-
-    if (navigator.share) {
-      try {
-        const html2canvas = await loadHtml2Canvas();
-        const canvas = await html2canvas(tableWrap, { scale: 2, useCORS: true });
-        canvas.toBlob(async (blob) => {
-          const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
-          await navigator.share({
-            files: [file],
-            title: "NU Sales Snapshot",
-          });
-        }, "image/png");
-      } catch (err) {
-        alert("مش قادر يعمل share: " + err.message);
-      }
-    } else {
+    if (!navigator.share) {
       alert("الجهاز مش بيدعم Share. جرب من الموبايل.");
+      return;
+    }
+    try {
+      await loadHtml2Canvas();
+      const canvas = await html2canvas(tableWrap, { scale: 2, useCORS: true });
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
+        await navigator.share({ files: [file], title: "NU Sales Snapshot" });
+      }, "image/png");
+    } catch (err) {
+      alert("مش قادر يعمل share: " + err.message);
     }
   }
 
   function loadHtml2Canvas() {
     return new Promise((resolve, reject) => {
-      if (window.html2canvas) return resolve(window.html2canvas);
-      const script = document.createElement("script");
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      script.onload = () => resolve(window.html2canvas);
-      script.onerror = reject;
-      document.head.appendChild(script);
+      if (window.html2canvas) return resolve();
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
     });
   }
 
