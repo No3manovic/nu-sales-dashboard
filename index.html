@@ -241,7 +241,26 @@ async function shareSnapshot() {
   if (!navigator.share) { alert("جرب من الموبايل."); return; }
   try {
     await loadHtml2Canvas();
-    const canvas = await html2canvas(document.getElementById("table-wrap"), { scale: 2, useCORS: true });
+    const tableWrap = document.getElementById("table-wrap");
+    const table = document.getElementById("sales-table");
+
+    // Temporarily expand wrapper to full table width
+    const originalOverflow = tableWrap.style.overflow;
+    const originalWidth = tableWrap.style.width;
+    tableWrap.style.overflow = "visible";
+    tableWrap.style.width = table.scrollWidth + "px";
+
+    const canvas = await html2canvas(tableWrap, {
+      scale: 2,
+      useCORS: true,
+      width: table.scrollWidth,
+      windowWidth: table.scrollWidth
+    });
+
+    // Restore original styles
+    tableWrap.style.overflow = originalOverflow;
+    tableWrap.style.width = originalWidth;
+
     canvas.toBlob(async blob => {
       const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
       await navigator.share({ files: [file], title: "NU Sales Snapshot" });
