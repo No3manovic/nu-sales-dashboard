@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NU Sales Dashboard</title>
   <style>
@@ -9,25 +9,23 @@
     body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; }
     h2 { color: #1a56a0; margin-bottom: 6px; font-size: 18px; }
     #timestamp { font-size: 12px; color: #666; margin-bottom: 12px; }
-    #table-wrap { overflow-x: auto; width: 100%; max-width: 1200px; }
-    table { border-collapse: collapse; width: 100%; font-size: 12px; background: #fff; }
-    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; white-space: nowrap; }
-    .h-title { background: #1a56a0; color: #fff; font-weight: 700; font-size: 14px; }
-    .h-sub   { background: #2271c3; color: #fff; font-weight: 600; }
-    .h-col   { background: #2e86de; color: #fff; font-weight: 500; }
-    .store   { text-align: left; font-weight: 500; background: #f7f9fc; }
-    .total   { background: #1a56a0; color: #fff; font-weight: 700; }
-    .red-pct { background: #e74c3c; color: #fff; font-weight: 700; }
+    #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; }
+    table { border-collapse: collapse; font-size: 12px; background: #fff; width: 100%; }
+    th, td { border: 1px solid #999; padding: 5px 7px; text-align: center; white-space: nowrap; }
+    .h-title  { background: #1a56a0; color: #fff; font-weight: 700; font-size: 13px; }
+    .h-date   { background: #2271c3; color: #fff; font-weight: 600; }
+    .h-col    { background: #2e86de; color: #fff; font-weight: 600; }
+    .store-hd { background: #2e86de; color: #fff; font-weight: 600; text-align: left; }
+    .store    { text-align: left; font-weight: 500; }
+    .total    { background: #1a56a0; color: #fff; font-weight: 700; }
+    .pct-red  { background: #e74c3c; color: #fff; font-weight: 700; }
+    .pct-yel  { background: #f1c40f; color: #000; font-weight: 700; }
+    .pct-grn  { background: #2ecc71; color: #000; font-weight: 700; }
+    .total-red { background: #e74c3c; color: #fff; font-weight: 700; }
     #share-btn {
-      margin-top: 16px;
-      padding: 12px 32px;
-      background: #25D366;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
+      margin-top: 16px; padding: 12px 32px;
+      background: #25D366; color: #fff; border: none;
+      border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
     }
     #loading { font-size: 14px; color: #555; margin-top: 40px; }
   </style>
@@ -43,110 +41,130 @@
 <button id="share-btn" style="display:none;" onclick="shareSnapshot()">📤 Share</button>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznhQJGw5WILq9GvX6LDHfc6EdWebjsPse3QW5eBTf2KOjHksshEQsWAL0m2QIVpvdv/exec";
+const URL = "https://script.google.com/macros/s/AKfycbznhQJGw5WILq9GvX6LDHfc6EdWebjsPse3QW5eBTf2KOjHksshEQsWAL0m2QIVpvdv/exec";
 
-  function formatCell(val, rowIndex, colIndex, totalRows) {
-    if (val === null || val === "") return "";
+function pctClass(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return "";
+  const p = n <= 1 ? n * 100 : n;
+  if (p < 90) return "pct-red";
+  if (p < 100) return "pct-yel";
+  return "pct-grn";
+}
 
-    if (rowIndex === 1 && colIndex === 0) {
-      const d = new Date(val);
-      if (!isNaN(d)) return d.toLocaleDateString("en-GB");
-      return val;
-    }
+function fmtPct(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return val;
+  return Math.round(n <= 1 ? n * 100 : n) + "%";
+}
 
-    if ((rowIndex >= 3 && rowIndex < totalRows - 1) || rowIndex === totalRows - 1) {
-      if (colIndex === 3 || colIndex === 6) {
-        const num = parseFloat(val);
-        if (!isNaN(num) && num <= 1) return Math.round(num * 100) + "%";
-        if (!isNaN(num)) return Math.round(num) + "%";
-      }
-    }
+function buildTable(rows) {
+  const table = document.getElementById("sales-table");
+  const totalRows = rows.length;
+  let td;
 
-    return val;
+  // Row 0: title
+  const r0 = table.insertRow();
+  td = document.createElement("th"); td.className = "h-title"; td.textContent = ""; r0.appendChild(td);
+  td = document.createElement("th"); td.className = "h-title"; td.colSpan = 6; td.textContent = rows[0][1] || "North upper sales"; r0.appendChild(td);
+  ["ADSL","Connectivity","EP","Terminal","VMT","RED","MNP","CR%"].forEach(h => {
+    td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 3; td.textContent = h; r0.appendChild(td);
+  });
+
+  // Row 1: date + GAs + Voice points
+  const r1 = table.insertRow();
+  const d = new Date(rows[1][0]);
+  const dateStr = isNaN(d) ? rows[1][0] : d.toLocaleDateString("en-GB");
+  td = document.createElement("th"); td.className = "h-date"; td.textContent = dateStr; r1.appendChild(td);
+  td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
+  td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "Voice points"; r1.appendChild(td);
+
+  // Row 2: column headers
+  const r2 = table.insertRow();
+  ["Store","Target","Sales","%","Target","Sales","%"].forEach(h => {
+    td = document.createElement("th");
+    td.className = h === "Store" ? "store-hd" : "h-col";
+    td.textContent = h;
+    r2.appendChild(td);
+  });
+
+  // Data rows
+  for (let i = 3; i < totalRows - 1; i++) {
+    const row = rows[i];
+    const tr = table.insertRow();
+    let c;
+    c = tr.insertCell(); c.className = "store"; c.textContent = row[0] || "";
+    c = tr.insertCell(); c.textContent = row[1] || "";
+    c = tr.insertCell(); c.textContent = row[2] || "";
+    c = tr.insertCell(); c.className = pctClass(row[3]); c.textContent = fmtPct(row[3]);
+    c = tr.insertCell(); c.textContent = row[4] || "";
+    c = tr.insertCell(); c.textContent = row[5] || "";
+    c = tr.insertCell(); c.className = pctClass(row[6]); c.textContent = fmtPct(row[6]);
+    for (let j = 7; j <= 13; j++) { c = tr.insertCell(); c.textContent = row[j] !== undefined ? row[j] : ""; }
+    // CR% - no color
+    c = tr.insertCell(); c.textContent = fmtPct(row[14]);
   }
 
-  function isRedCell(val, rowIndex, colIndex, totalRows) {
-    if (rowIndex !== totalRows - 1) return false;
+  // Total row
+  const last = rows[totalRows - 1];
+  const tr = table.insertRow();
+  let c;
+  c = tr.insertCell(); c.className = "total"; c.textContent = "Total";
+  c = tr.insertCell(); c.className = "total"; c.textContent = last[1] || "";
+  c = tr.insertCell(); c.className = "total"; c.textContent = last[2] || "";
+  c = tr.insertCell(); c.className = pctClass(last[3]); c.textContent = fmtPct(last[3]);
+  c = tr.insertCell(); c.className = "total"; c.textContent = last[4] || "";
+  c = tr.insertCell(); c.className = "total"; c.textContent = last[5] || "";
+  c = tr.insertCell(); c.className = pctClass(last[6]); c.textContent = fmtPct(last[6]);
+  for (let j = 7; j <= 13; j++) {
+    c = tr.insertCell();
+    const val = last[j];
     const num = parseFloat(val);
-    return !isNaN(num) && num === 0;
+    c.className = (!isNaN(num) && num === 0) ? "total-red" : "total";
+    c.textContent = val !== undefined ? val : "";
   }
+  // CR% total - no color
+  c = tr.insertCell(); c.className = "total"; c.textContent = fmtPct(last[14]);
+}
 
-  async function loadData() {
-    try {
-      const res = await fetch(APPS_SCRIPT_URL);
-      const json = await res.json();
-      const rows = json.sales;
-
-      const d = new Date(json.timestamp);
-      document.getElementById("timestamp").textContent = "Last updated: " + d.toLocaleString("en-GB");
-      document.getElementById("loading").style.display = "none";
-
-      buildTable(rows);
-
-      document.getElementById("table-wrap").style.display = "block";
-      document.getElementById("share-btn").style.display = "inline-block";
-    } catch (err) {
-      document.getElementById("loading").textContent = "فيه مشكلة في تحميل البيانات.";
-    }
+async function loadData() {
+  try {
+    const res = await fetch(URL);
+    const json = await res.json();
+    const d = new Date(json.timestamp);
+    document.getElementById("timestamp").textContent = "Last updated: " + d.toLocaleString("en-GB");
+    document.getElementById("loading").style.display = "none";
+    buildTable(json.sales);
+    document.getElementById("table-wrap").style.display = "block";
+    document.getElementById("share-btn").style.display = "inline-block";
+  } catch (err) {
+    document.getElementById("loading").textContent = "فيه مشكلة في تحميل البيانات.";
   }
+}
 
-  function buildTable(rows) {
-    const table = document.getElementById("sales-table");
-    table.innerHTML = "";
-    const totalRows = rows.length;
+async function shareSnapshot() {
+  if (!navigator.share) { alert("جرب من الموبايل."); return; }
+  try {
+    await loadHtml2Canvas();
+    const canvas = await html2canvas(document.getElementById("table-wrap"), { scale: 2, useCORS: true });
+    canvas.toBlob(async blob => {
+      const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
+      await navigator.share({ files: [file], title: "NU Sales Snapshot" });
+    }, "image/png");
+  } catch (err) { alert("Error: " + err.message); }
+}
 
-    rows.forEach((row, i) => {
-      const tr = document.createElement("tr");
-      row.forEach((cell, j) => {
-        const isHeader = i < 3;
-        const el = document.createElement(isHeader ? "th" : "td");
-        el.textContent = formatCell(cell, i, j, totalRows);
+function loadHtml2Canvas() {
+  return new Promise((res, rej) => {
+    if (window.html2canvas) return res();
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
 
-        if (i === 0) el.className = "h-title";
-        else if (i === 1) el.className = "h-sub";
-        else if (i === 2) el.className = "h-col";
-        else if (i === totalRows - 1) {
-          el.className = isRedCell(cell, i, j, totalRows) ? "red-pct" : "total";
-        } else {
-          el.className = j === 0 ? "store" : "";
-        }
-
-        tr.appendChild(el);
-      });
-      table.appendChild(tr);
-    });
-  }
-
-  async function shareSnapshot() {
-    const tableWrap = document.getElementById("table-wrap");
-    if (!navigator.share) {
-      alert("الجهاز مش بيدعم Share. جرب من الموبايل.");
-      return;
-    }
-    try {
-      await loadHtml2Canvas();
-      const canvas = await html2canvas(tableWrap, { scale: 2, useCORS: true });
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
-        await navigator.share({ files: [file], title: "NU Sales Snapshot" });
-      }, "image/png");
-    } catch (err) {
-      alert("مش قادر يعمل share: " + err.message);
-    }
-  }
-
-  function loadHtml2Canvas() {
-    return new Promise((resolve, reject) => {
-      if (window.html2canvas) return resolve();
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
-  loadData();
+loadData();
 </script>
 </body>
 </html>
