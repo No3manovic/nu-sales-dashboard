@@ -10,15 +10,8 @@
     h2 { color: #1a56a0; font-size: 18px; }
     .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
     .controls label { font-size: 13px; color: #444; font-weight: 600; }
-    .controls input, .controls select {
-      padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px;
-      font-size: 13px; background: #fff; cursor: pointer;
-    }
-    .controls button {
-      padding: 7px 18px; background: #1a56a0; color: #fff;
-      border: none; border-radius: 6px; font-size: 13px;
-      font-weight: 600; cursor: pointer;
-    }
+    .controls input, .controls select { padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; }
+    .controls button { padding: 7px 18px; background: #1a56a0; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
     #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; }
     table { border-collapse: collapse; font-size: 12px; background: #fff; width: 100%; }
     th, td { border: 1px solid #999; padding: 5px 7px; text-align: center; white-space: nowrap; }
@@ -31,18 +24,16 @@
     .pct-red  { background: #e74c3c; color: #fff; font-weight: 700; }
     .pct-yel  { background: #f1c40f; color: #000; font-weight: 700; }
     .pct-grn  { background: #2ecc71; color: #000; font-weight: 700; }
-    .total-red { background: #e74c3c; color: #fff; font-weight: 700; }
-    #share-btn {
-      padding: 12px 32px; background: #25D366; color: #fff;
-      border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
-    }
+    .total-pct-red { background: #e74c3c; color: #fff; font-weight: 700; }
+    .total-pct-yel { background: #f1c40f; color: #000; font-weight: 700; }
+    .total-pct-grn { background: #2ecc71; color: #000; font-weight: 700; }
+    #share-btn { padding: 12px 32px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
     #msg { font-size: 13px; color: #555; }
   </style>
 </head>
 <body>
 
 <h2>North Upper Sales</h2>
-
 <div class="controls">
   <label>Date: <input type="date" id="sel-date"/></label>
   <label>Time:
@@ -119,6 +110,15 @@ function pctClass(val) {
   return "pct-grn";
 }
 
+function totalPctClass(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return "total";
+  const p = n <= 1 ? n * 100 : n;
+  if (p < 90)  return "total-pct-red";
+  if (p < 100) return "total-pct-yel";
+  return "total-pct-grn";
+}
+
 function fmtPct(val) {
   if (val === "" || val === null || val === undefined) return "";
   const n = parseFloat(val);
@@ -136,7 +136,6 @@ function renderTable() {
 
   const table = document.getElementById("sales-table");
   table.innerHTML = "";
-
   let td;
 
   // Row 0: title
@@ -147,13 +146,13 @@ function renderTable() {
     td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 3; td.textContent = h; r0.appendChild(td);
   });
 
-  // Row 1: date + GAs + Voice points
+  // Row 1
   const r1 = table.insertRow();
   td = document.createElement("th"); td.className = "h-date"; td.textContent = displayDate; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "Voice points"; r1.appendChild(td);
 
-  // Row 2: column headers
+  // Row 2
   const r2 = table.insertRow();
   ["Store","Target","Sales","%","Target","Sales","%"].forEach(h => {
     td = document.createElement("th");
@@ -197,13 +196,10 @@ function renderTable() {
     c = tr.insertCell(); c.className = "store"; c.textContent = store;
     c = tr.insertCell(); c.textContent = row ? gasT : "";
     c = tr.insertCell(); c.textContent = row ? gasS : "";
-    // D - color
     c = tr.insertCell(); c.className = row ? pctClass(gasPct) : ""; c.textContent = row ? fmtPct(gasPct) : "";
     c = tr.insertCell(); c.textContent = row ? vpT : "";
     c = tr.insertCell(); c.textContent = row ? vpS : "";
-    // G - color
     c = tr.insertCell(); c.className = row ? pctClass(vpPct) : ""; c.textContent = row ? fmtPct(vpPct) : "";
-    // rest - no color
     c = tr.insertCell(); c.textContent = row ? adsl : "";
     c = tr.insertCell(); c.textContent = row ? conn : "";
     c = tr.insertCell(); c.textContent = row ? ep   : "";
@@ -224,15 +220,17 @@ function renderTable() {
   c = tr.insertCell(); c.className = "total"; c.textContent = "Total";
   c = tr.insertCell(); c.className = "total"; c.textContent = totGAsT;
   c = tr.insertCell(); c.className = "total"; c.textContent = totGAsS;
-  c = tr.insertCell(); c.className = pctClass(totGAsPct); c.textContent = fmtPct(totGAsPct);
+  c = tr.insertCell(); c.className = totalPctClass(totGAsPct); c.textContent = fmtPct(totGAsPct);
   c = tr.insertCell(); c.className = "total"; c.textContent = totVPT;
   c = tr.insertCell(); c.className = "total"; c.textContent = totVPS;
-  c = tr.insertCell(); c.className = pctClass(totVPPct); c.textContent = fmtPct(totVPPct);
-  [totADSL, totConn, totEP, totTerm, totVMT, totRED, totMNP].forEach(v => {
-    c = tr.insertCell();
-    c.className = v === 0 ? "total-red" : "total";
-    c.textContent = v;
-  });
+  c = tr.insertCell(); c.className = totalPctClass(totVPPct); c.textContent = fmtPct(totVPPct);
+  c = tr.insertCell(); c.className = "total"; c.textContent = totADSL;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totConn;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totEP;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totTerm;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totVMT;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totRED;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totMNP;
   c = tr.insertCell(); c.className = "total"; c.textContent = fmtPct(totCR);
 
   document.getElementById("table-wrap").style.display = "block";
