@@ -86,23 +86,18 @@ function normalizeDate(val) {
 }
 
 function filterRow(store, selDateTs, selHour) {
-  let best = null, bestDiff = Infinity;
   for (let i = 1; i < rawData.length; i++) {
     const row = rawData[i];
     const rowStore = (row[2] || "").toString().trim();
     if (rowStore.toLowerCase() !== store.toLowerCase()) continue;
     const rowDateTs = normalizeDate(row[1]);
     if (rowDateTs !== selDateTs) continue;
-    const ts = new Date(row[0]);
-    const rowHour = ts.getHours() + ts.getMinutes() / 60;
-    const diff = Math.abs(rowHour - selHour);
-    if (diff <= 0.5 && diff < bestDiff) { bestDiff = diff; best = row; }
+    const rowReport = parseInt(row[17]);
+    if (rowReport === selHour) return row;
   }
-  return best;
+  return null;
 }
 
-// النسبة دايما بتيجي كـ decimal من الحسبة (gasS/gasT)
-// فبنضرب في 100 دايما
 function fmtPct(val) {
   if (val === "" || val === null || val === undefined) return "";
   const n = parseFloat(val);
@@ -140,7 +135,6 @@ function renderTable() {
   table.innerHTML = "";
   let td;
 
-  // Row 0: title
   const r0 = table.insertRow();
   td = document.createElement("th"); td.className = "h-title"; td.textContent = ""; r0.appendChild(td);
   td = document.createElement("th"); td.className = "h-title"; td.colSpan = 6; td.textContent = "North upper sales"; r0.appendChild(td);
@@ -148,13 +142,11 @@ function renderTable() {
     td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 3; td.textContent = h; r0.appendChild(td);
   });
 
-  // Row 1
   const r1 = table.insertRow();
   td = document.createElement("th"); td.className = "h-date"; td.textContent = displayDate; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "Voice points"; r1.appendChild(td);
 
-  // Row 2
   const r2 = table.insertRow();
   ["Store","Target","Sales","%","Target","Sales","%"].forEach(h => {
     td = document.createElement("th");
@@ -212,7 +204,6 @@ function renderTable() {
     c = tr.insertCell(); c.textContent = row ? fmtPct(crRaw) : "";
   });
 
-  // Total row
   const totGAsPct = totGAsT > 0 ? totGAsS / totGAsT : 0;
   const totVPPct  = totVPT  > 0 ? totVPS  / totVPT  : 0;
   const totCR     = crCount > 0 ? crSum / crCount : 0;
