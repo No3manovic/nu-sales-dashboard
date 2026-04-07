@@ -10,8 +10,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
-    h2 { color: #1a56a0; font-size: 18px; }
-
+    
     .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
     .controls label { font-size: 13px; font-weight: 600; }
     .controls input, .controls select { padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px; }
@@ -20,16 +19,23 @@
     #load-btn { background: #1a56a0; color: #fff; }
     #share-btn { background: #25D366; color: #fff; }
 
+    #msg { font-size: 13px; color: #555; }
+
     #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; background: #fff; padding: 10px; border-radius: 10px; }
 
     table { border-collapse: collapse; width: 100%; font-size: 12px; }
     th, td { border: 1px solid #999; padding: 5px 7px; text-align: center; }
     th { background: #2e86de; color: #fff; }
+
+    .title-row {
+      background: #1a56a0;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-
-<h2>North Upper Sales</h2>
 
 <div class="controls">
   <label>Date: <input type="date" id="sel-date"/></label>
@@ -47,6 +53,8 @@
   <button id="load-btn">Load Data</button>
   <button id="share-btn">Share</button>
 </div>
+
+<div id="msg"></div>
 
 <div id="table-wrap">
   <table>
@@ -70,27 +78,21 @@ function getHour(val) {
 
 function processData(rawData) {
   const map = new Map();
-
   for (let i = 1; i < rawData.length; i++) {
     const row = rawData[i];
     const store = (row[2] || "").toString().trim().toLowerCase();
     const date  = normalizeDate(row[1]);
     const hour  = getHour(row[17]);
-
     if (!store || hour === null) continue;
-
     const key = `${store}_${date}_${hour}`;
-
     if (map.has(key)) {
       const prev = map.get(key);
       for (let j = 0; j < row.length; j++) {
         if (!row[j]) row[j] = prev[j];
       }
     }
-
     map.set(key, row);
   }
-
   return Array.from(map.values());
 }
 
@@ -106,6 +108,15 @@ function filterData(data) {
   });
 }
 
+function getColor(val) {
+  if (!val) return null;
+  const num = parseFloat(val.toString().replace("%", ""));
+  if (isNaN(num)) return null;
+  if (num < 90) return "#FF0000";
+  if (num < 100) return "#FFFF00";
+  return "#00B050";
+}
+
 function renderTable(data) {
   const thead = document.getElementById("table-head");
   const tbody = document.getElementById("table-body");
@@ -113,42 +124,63 @@ function renderTable(data) {
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  if (data.length === 0) return;
+  if (data.length === 0) {
+    document.getElementById("msg").innerText = "No data found";
+    return;
+  }
+
+  const colCount = data[0].length;
+
+  const titleRow = document.createElement("tr");
+  const titleCell = document.createElement("th");
+  titleCell.colSpan = colCount;
+  titleCell.innerText = "North Upper Sales";
+  titleCell.className = "title-row";
+  titleRow.appendChild(titleCell);
+  thead.appendChild(titleRow);
 
   const headerRow = document.createElement("tr");
-
   data[0].forEach((_, i) => {
     const th = document.createElement("th");
     th.textContent = data[0][i] || `Col ${i+1}`;
     headerRow.appendChild(th);
   });
-
   thead.appendChild(headerRow);
 
   data.forEach(row => {
     const tr = document.createElement("tr");
-
     row.forEach(cell => {
       const td = document.createElement("td");
       td.textContent = cell;
+
+      const color = getColor(cell);
+      if (color) {
+        td.style.backgroundColor = color;
+        td.style.fontWeight = "700";
+      }
+
       tr.appendChild(td);
     });
-
     tbody.appendChild(tr);
   });
 }
 
 document.getElementById("load-btn").addEventListener("click", () => {
+  document.getElementById("msg").innerText = "Loading data...";
+  
   fetch(API_URL)
     .then(res => res.json())
     .then(res => {
+      document.getElementById("msg").innerText = "";
       const clean = processData(res.data);
       const filtered = filterData(clean);
       renderTable(filtered);
+    })
+    .catch(() => {
+      document.getElementById("msg").innerText = "Error loading data";
     });
 });
 
-// 🔥 SHARE
 document.getElementById("share-btn").addEventListener("click", async () => {
   const table = document.getElementById("table-wrap");
 
