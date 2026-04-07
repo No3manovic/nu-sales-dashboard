@@ -7,70 +7,38 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px;
-      gap: 12px;
-    }
-
+    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
     h2 { color: #1a56a0; font-size: 20px; font-weight: 800; }
 
-    .controls {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
     .controls label { font-size: 13px; font-weight: 600; }
-    .controls select {
-      padding: 7px 10px;
-      border: 1px solid #aaa;
-      border-radius: 6px;
-      font-size: 13px;
-    }
+    .controls select { padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px; font-size: 13px; }
 
     button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
-    #load-btn  { background: #1a56a0; color: #fff; }
-    #share-btn { background: #25D366; color: #fff; }
+    #refresh-btn { background: #1a56a0; color: #fff; }
+    #share-btn   { background: #25D366; color: #fff; }
 
     #status { font-size: 13px; color: #888; }
 
-    #table-wrap {
-      overflow-x: auto;
-      width: 100%;
-      max-width: 1300px;
-      background: #fff;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.1);
-    }
+    #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; background: #fff; padding: 10px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,.1); }
 
     table { border-collapse: collapse; width: 100%; font-size: 12px; }
     th, td { border: 1px solid #bbb; padding: 5px 8px; text-align: center; white-space: nowrap; }
 
-    /* Header rows */
     .th-blue { background: #2e86de; color: #fff; font-weight: 700; }
     .th-sub  { background: #1a56a0; color: #fff; font-weight: 600; font-size: 11px; }
-
-    /* Store name col */
     .td-store { text-align: left; font-weight: 600; background: #f8f9fa; }
 
-    /* Percent badges */
     .pct { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; }
     .pct-red    { background: #dc2626; color: #fff; }
     .pct-orange { background: #f97316; color: #fff; }
     .pct-green  { background: #16a34a; color: #fff; }
 
-    /* Total row */
     .tr-total td { background: #2e86de; color: #fff; font-weight: 700; }
-
-    /* Zebra */
     tbody tr:nth-child(even) td:not(.td-store) { background: #f5f8ff; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #1a56a0; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -81,7 +49,6 @@
   <label>📅 Date:
     <select id="sel-date"><option value="">-- Loading --</option></select>
   </label>
-
   <label>🕐 Hour:
     <select id="sel-hour">
       <option value="">All</option>
@@ -91,12 +58,11 @@
       <option value="21">21</option>
     </select>
   </label>
-
-  <button id="load-btn">🔄 Load</button>
+  <button id="refresh-btn">🔄 Refresh</button>
   <button id="share-btn">📤 Share</button>
 </div>
 
-<div id="status">Press Load to fetch data…</div>
+<div id="status"><span class="spinner"></span> Loading data…</div>
 
 <div id="table-wrap">
   <table>
@@ -115,47 +81,27 @@ function normDate(val) {
   if (isNaN(d)) return null;
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
-
 function fmtDate(ts) {
   return new Date(ts).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 }
-
-function getHour(val) {
-  const n = Number(val);
-  return isNaN(n) ? null : n;
-}
-
-function pctNum(val) {
-  const n = parseFloat(String(val || "").replace("%",""));
-  return isNaN(n) ? 0 : n;
-}
-
-function pctClass(n) {
-  if (n >= 80) return "pct pct-green";
-  if (n >= 50) return "pct pct-orange";
-  return "pct pct-red";
-}
-
-function pctBadge(val) {
-  const n = pctNum(val);
-  const label = val ? String(val) : "0%";
-  return `<span class="${pctClass(n)}">${label}</span>`;
-}
+function getHour(val) { const n = Number(val); return isNaN(n) ? null : n; }
+function pctNum(val) { const n = parseFloat(String(val||"").replace("%","")); return isNaN(n) ? 0 : n; }
+function pctClass(n) { return n >= 80 ? "pct pct-green" : n >= 50 ? "pct pct-orange" : "pct pct-red"; }
+function pctBadge(val) { const n = pctNum(val); return `<span class="${pctClass(n)}">${val||"0%"}</span>`; }
+function setStatus(msg) { document.getElementById("status").innerHTML = msg; }
 
 function processData(rawData) {
   const map = new Map();
   for (let i = 1; i < rawData.length; i++) {
     const row = rawData[i];
-    const store = (row[2] || "").toString().trim().toLowerCase();
+    const store = (row[2]||"").toString().trim().toLowerCase();
     const date  = normDate(row[1]);
     const hour  = getHour(row[17]);
     if (!store || hour === null || !date) continue;
     const key = `${store}_${date}_${hour}`;
     if (map.has(key)) {
       const prev = map.get(key);
-      for (let j = 0; j < row.length; j++) {
-        if (!row[j]) row[j] = prev[j];
-      }
+      for (let j = 0; j < row.length; j++) if (!row[j]) row[j] = prev[j];
     }
     map.set(key, row);
   }
@@ -163,16 +109,12 @@ function processData(rawData) {
 }
 
 function populateDates(data) {
-  const dateSet = new Map();
-  data.forEach(r => {
-    const ts = normDate(r[1]);
-    if (ts) dateSet.set(ts, ts);
-  });
-  const sorted = [...dateSet.keys()].sort((a,b) => b - a);
+  const dateMap = new Map();
+  data.forEach(r => { const ts = normDate(r[1]); if (ts) dateMap.set(ts, ts); });
+  const sorted = [...dateMap.keys()].sort((a,b) => b - a);
   const sel = document.getElementById("sel-date");
-  sel.innerHTML = sorted.map(ts =>
-    `<option value="${ts}">${fmtDate(ts)}</option>`
-  ).join("");
+  if (!sorted.length) { sel.innerHTML = `<option value="">No dates</option>`; return; }
+  sel.innerHTML = sorted.map(ts => `<option value="${ts}">${fmtDate(ts)}</option>`).join("");
 }
 
 function filterData(data) {
@@ -197,7 +139,6 @@ function renderTable(data) {
     return;
   }
 
-  // Header row 1
   thead.innerHTML = `
     <tr>
       <th class="th-blue" rowspan="2">Store</th>
@@ -220,42 +161,25 @@ function renderTable(data) {
       <th class="th-sub"></th><th class="th-sub"></th>
     </tr>`;
 
-  // Totals accumulators
-  let gaT=0, gaS=0, vpT=0, vpS=0, adsl=0, conn=0, ep=0, term=0, vmt=0, red=0, mnp=0;
+  let gaT=0,gaS=0,vpT=0,vpS=0,adsl=0,conn=0,ep=0,term=0,vmt=0,red=0,mnp=0;
 
   data.forEach(r => {
-    gaT  += Number(r[3])||0;
-    gaS  += Number(r[4])||0;
-    vpT  += Number(r[6])||0;
-    vpS  += Number(r[7])||0;
-    adsl += Number(r[9])||0;
-    conn += Number(r[10])||0;
-    ep   += Number(r[11])||0;
-    term += Number(r[12])||0;
-    vmt  += Number(r[13])||0;
-    red  += Number(r[14])||0;
-    mnp  += Number(r[15])||0;
+    gaT+=Number(r[3])||0; gaS+=Number(r[4])||0;
+    vpT+=Number(r[6])||0; vpS+=Number(r[7])||0;
+    adsl+=Number(r[9])||0; conn+=Number(r[10])||0;
+    ep+=Number(r[11])||0; term+=Number(r[12])||0;
+    vmt+=Number(r[13])||0; red+=Number(r[14])||0; mnp+=Number(r[15])||0;
 
     tbody.innerHTML += `<tr>
       <td class="td-store">${r[2]||""}</td>
-      <td>${r[3]||0}</td>
-      <td>${r[4]||0}</td>
-      <td>${pctBadge(r[5])}</td>
-      <td>${r[6]||0}</td>
-      <td>${r[7]||0}</td>
-      <td>${pctBadge(r[8])}</td>
-      <td>${r[9]||0}</td>
-      <td>${r[10]||0}</td>
-      <td>${r[11]||0}</td>
-      <td>${r[12]||0}</td>
-      <td>${r[13]||0}</td>
-      <td>${r[14]||0}</td>
-      <td>${r[15]||0}</td>
-      <td>${pctBadge(r[16])}</td>
+      <td>${r[3]||0}</td><td>${r[4]||0}</td><td>${pctBadge(r[5])}</td>
+      <td>${r[6]||0}</td><td>${r[7]||0}</td><td>${pctBadge(r[8])}</td>
+      <td>${r[9]||0}</td><td>${r[10]||0}</td><td>${r[11]||0}</td>
+      <td>${r[12]||0}</td><td>${r[13]||0}</td><td>${r[14]||0}</td>
+      <td>${r[15]||0}</td><td>${pctBadge(r[16])}</td>
     </tr>`;
   });
 
-  // Total row
   const gaPct = gaT ? Math.round(gaS/gaT*100)+"%" : "0%";
   const vpPct = vpT ? Math.round(vpS/vpT*100)+"%" : "0%";
   tbody.innerHTML += `<tr class="tr-total">
@@ -263,15 +187,15 @@ function renderTable(data) {
     <td>${gaT}</td><td>${gaS}</td><td>${gaPct}</td>
     <td>${vpT}</td><td>${vpS}</td><td>${vpPct}</td>
     <td>${adsl}</td><td>${conn}</td><td>${ep}</td>
-    <td>${term}</td><td>${vmt}</td><td>${red}</td>
-    <td>${mnp}</td><td></td>
+    <td>${term}</td><td>${vmt}</td><td>${red}</td><td>${mnp}</td><td></td>
   </tr>`;
 
-  document.getElementById("status").textContent = `${data.length} stores — ${fmtDate(normDate(data[0][1]))}`;
+  setStatus(`✅ ${data.length} stores — ${fmtDate(normDate(data[0][1]))}`);
 }
 
-document.getElementById("load-btn").addEventListener("click", () => {
-  document.getElementById("status").textContent = "Loading…";
+// ✅ Auto-load on page open
+function loadData() {
+  setStatus(`<span class="spinner"></span> Loading…`);
   fetch(API_URL)
     .then(r => r.json())
     .then(res => {
@@ -279,19 +203,20 @@ document.getElementById("load-btn").addEventListener("click", () => {
       populateDates(allClean);
       renderTable(filterData(allClean));
     })
-    .catch(() => {
-      document.getElementById("status").textContent = "❌ Failed to load data";
-    });
-});
+    .catch(() => setStatus("❌ Failed to load. Check your connection."));
+}
 
-// Auto-reload when date/hour changes
+// تشغيل تلقائي عند فتح الصفحة
+window.addEventListener("load", loadData);
+
+document.getElementById("refresh-btn").addEventListener("click", loadData);
+
 ["sel-date","sel-hour"].forEach(id => {
   document.getElementById(id).addEventListener("change", () => {
     if (allClean.length) renderTable(filterData(allClean));
   });
 });
 
-// Share
 document.getElementById("share-btn").addEventListener("click", async () => {
   const table = document.getElementById("table-wrap");
   const canvas = await html2canvas(table, { scale: 2 });
@@ -309,4 +234,4 @@ document.getElementById("share-btn").addEventListener("click", async () => {
 });
 </script>
 </body>
-</html> 
+</html>
