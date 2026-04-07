@@ -141,19 +141,22 @@ function renderTable() {
   table.innerHTML = "";
   let td;
 
-  // Row 1: empty + North upper sales (colspan6) + ADSL..CR% (rowspan2)
+  // Row 1: North upper sales colspan 15
   const r0 = table.insertRow();
-  td = document.createElement("th"); td.className = "h-title"; td.textContent = ""; r0.appendChild(td);
-  td = document.createElement("th"); td.className = "h-title"; td.colSpan = 6; td.textContent = "North upper sales"; r0.appendChild(td);
-  ["ADSL","Connectivity","EP","Terminal","VMT","RED","MNP","CR%"].forEach(h => {
-    td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 2; td.textContent = h; r0.appendChild(td);
-  });
+  td = document.createElement("th");
+  td.className = "h-title";
+  td.colSpan = 15;
+  td.textContent = "North upper sales";
+  r0.appendChild(td);
 
-  // Row 2: date + GAs (colspan3) + Voice points (colspan3)
+  // Row 2: date + GAs + Voice points + ADSL..CR% (rowspan2)
   const r1 = table.insertRow();
   td = document.createElement("th"); td.className = "h-date"; td.textContent = displayDate; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "Voice points"; r1.appendChild(td);
+  ["ADSL","Connectivity","EP","Terminal","VMT","RED","MNP","CR%"].forEach(h => {
+    td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 2; td.textContent = h; r1.appendChild(td);
+  });
 
   // Row 3: Store, Target, Sales, %, Target, Sales, %
   const r2 = table.insertRow();
@@ -281,4 +284,4 @@ function loadHtml2Canvas() {
 loadData();
 </script>
 </body>
-</html>
+  </html> 
