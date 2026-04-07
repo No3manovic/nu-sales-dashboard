@@ -4,37 +4,85 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NU Sales Dashboard</title>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
-    h2 { color: #1a56a0; font-size: 18px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 12px;
+    }
 
-    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    h2 { color: #1a56a0; font-size: 20px; font-weight: 800; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .controls label { font-size: 13px; font-weight: 600; }
-    .controls input, .controls select { padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px; }
+    .controls select {
+      padding: 7px 10px;
+      border: 1px solid #aaa;
+      border-radius: 6px;
+      font-size: 13px;
+    }
 
-    button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; }
-    #load-btn { background: #1a56a0; color: #fff; }
+    button { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    #load-btn  { background: #1a56a0; color: #fff; }
     #share-btn { background: #25D366; color: #fff; }
 
-    #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; background: #fff; padding: 10px; border-radius: 10px; }
+    #status { font-size: 13px; color: #888; }
+
+    #table-wrap {
+      overflow-x: auto;
+      width: 100%;
+      max-width: 1300px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.1);
+    }
 
     table { border-collapse: collapse; width: 100%; font-size: 12px; }
-    th, td { border: 1px solid #999; padding: 5px 7px; text-align: center; }
-    th { background: #2e86de; color: #fff; }
+    th, td { border: 1px solid #bbb; padding: 5px 8px; text-align: center; white-space: nowrap; }
+
+    /* Header rows */
+    .th-blue { background: #2e86de; color: #fff; font-weight: 700; }
+    .th-sub  { background: #1a56a0; color: #fff; font-weight: 600; font-size: 11px; }
+
+    /* Store name col */
+    .td-store { text-align: left; font-weight: 600; background: #f8f9fa; }
+
+    /* Percent badges */
+    .pct { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 11px; }
+    .pct-red    { background: #dc2626; color: #fff; }
+    .pct-orange { background: #f97316; color: #fff; }
+    .pct-green  { background: #16a34a; color: #fff; }
+
+    /* Total row */
+    .tr-total td { background: #2e86de; color: #fff; font-weight: 700; }
+
+    /* Zebra */
+    tbody tr:nth-child(even) td:not(.td-store) { background: #f5f8ff; }
   </style>
 </head>
 <body>
 
-<h2>North Upper Sales</h2>
+<h2>🗂 North Upper Sales</h2>
 
 <div class="controls">
-  <label>Date: <input type="date" id="sel-date"/></label>
+  <label>📅 Date:
+    <select id="sel-date"><option value="">-- Loading --</option></select>
+  </label>
 
-  <label>Time:
+  <label>🕐 Hour:
     <select id="sel-hour">
       <option value="">All</option>
       <option value="12">12</option>
@@ -44,9 +92,11 @@
     </select>
   </label>
 
-  <button id="load-btn">Load Data</button>
-  <button id="share-btn">Share</button>
+  <button id="load-btn">🔄 Load</button>
+  <button id="share-btn">📤 Share</button>
 </div>
+
+<div id="status">Press Load to fetch data…</div>
 
 <div id="table-wrap">
   <table>
@@ -58,9 +108,16 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzR6OU35ubJBGhjDYonuiKXGCcx1y2HqD7lJLEaQf6JlZ8DTpp9S7ZSf5d6uKZJyMNc/exec";
 
-function normalizeDate(val) {
+let allClean = [];
+
+function normDate(val) {
   const d = new Date(val);
+  if (isNaN(d)) return null;
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 }
 
 function getHour(val) {
@@ -68,14 +125,31 @@ function getHour(val) {
   return isNaN(n) ? null : n;
 }
 
+function pctNum(val) {
+  const n = parseFloat(String(val || "").replace("%",""));
+  return isNaN(n) ? 0 : n;
+}
+
+function pctClass(n) {
+  if (n >= 80) return "pct pct-green";
+  if (n >= 50) return "pct pct-orange";
+  return "pct pct-red";
+}
+
+function pctBadge(val) {
+  const n = pctNum(val);
+  const label = val ? String(val) : "0%";
+  return `<span class="${pctClass(n)}">${label}</span>`;
+}
+
 function processData(rawData) {
   const map = new Map();
   for (let i = 1; i < rawData.length; i++) {
     const row = rawData[i];
     const store = (row[2] || "").toString().trim().toLowerCase();
-    const date  = normalizeDate(row[1]);
+    const date  = normDate(row[1]);
     const hour  = getHour(row[17]);
-    if (!store || hour === null) continue;
+    if (!store || hour === null || !date) continue;
     const key = `${store}_${date}_${hour}`;
     if (map.has(key)) {
       const prev = map.get(key);
@@ -88,90 +162,143 @@ function processData(rawData) {
   return Array.from(map.values());
 }
 
-function filterData(data) {
-  const dateFilter = document.getElementById("sel-date").value;
-  const hourFilter = document.getElementById("sel-hour").value;
-
-  return data.filter(row => {
-    let match = true;
-    if (dateFilter) match = match && normalizeDate(row[1]) === normalizeDate(dateFilter);
-    if (hourFilter) match = match && getHour(row[17]) === Number(hourFilter);
-    return match;
+function populateDates(data) {
+  const dateSet = new Map();
+  data.forEach(r => {
+    const ts = normDate(r[1]);
+    if (ts) dateSet.set(ts, ts);
   });
+  const sorted = [...dateSet.keys()].sort((a,b) => b - a);
+  const sel = document.getElementById("sel-date");
+  sel.innerHTML = sorted.map(ts =>
+    `<option value="${ts}">${fmtDate(ts)}</option>`
+  ).join("");
 }
 
-function getColor(val) {
-  if (!val) return null;
-  const num = parseFloat(val.toString().replace("%", ""));
-  if (isNaN(num)) return null;
-  if (num < 50) return "#FF0000";
-  if (num < 80) return "#FFFF00";
-  return "#00B050";
+function filterData(data) {
+  const dateVal = document.getElementById("sel-date").value;
+  const hourVal = document.getElementById("sel-hour").value;
+  return data.filter(r => {
+    let ok = true;
+    if (dateVal) ok = ok && normDate(r[1]) === Number(dateVal);
+    if (hourVal) ok = ok && getHour(r[17]) === Number(hourVal);
+    return ok;
+  });
 }
 
 function renderTable(data) {
   const thead = document.getElementById("table-head");
   const tbody = document.getElementById("table-body");
-
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  if (data.length === 0) return;
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="15" style="padding:20px;color:#888">No data for this selection</td></tr>`;
+    return;
+  }
 
-  const headerRow = document.createElement("tr");
+  // Header row 1
+  thead.innerHTML = `
+    <tr>
+      <th class="th-blue" rowspan="2">Store</th>
+      <th class="th-blue" colspan="3">GAs</th>
+      <th class="th-blue" colspan="3">Voice Points</th>
+      <th class="th-blue">ADSL</th>
+      <th class="th-blue">Connectivity</th>
+      <th class="th-blue">EP</th>
+      <th class="th-blue">Terminal</th>
+      <th class="th-blue">VMT</th>
+      <th class="th-blue">RED</th>
+      <th class="th-blue">MNP</th>
+      <th class="th-blue">CR%</th>
+    </tr>
+    <tr>
+      <th class="th-sub">Target</th><th class="th-sub">Sales</th><th class="th-sub">%</th>
+      <th class="th-sub">Target</th><th class="th-sub">Sales</th><th class="th-sub">%</th>
+      <th class="th-sub"></th><th class="th-sub"></th><th class="th-sub"></th>
+      <th class="th-sub"></th><th class="th-sub"></th><th class="th-sub"></th>
+      <th class="th-sub"></th><th class="th-sub"></th>
+    </tr>`;
 
-  data[0].forEach((_, i) => {
-    const th = document.createElement("th");
-    th.textContent = data[0][i] || `Col ${i+1}`;
-    headerRow.appendChild(th);
+  // Totals accumulators
+  let gaT=0, gaS=0, vpT=0, vpS=0, adsl=0, conn=0, ep=0, term=0, vmt=0, red=0, mnp=0;
+
+  data.forEach(r => {
+    gaT  += Number(r[3])||0;
+    gaS  += Number(r[4])||0;
+    vpT  += Number(r[6])||0;
+    vpS  += Number(r[7])||0;
+    adsl += Number(r[9])||0;
+    conn += Number(r[10])||0;
+    ep   += Number(r[11])||0;
+    term += Number(r[12])||0;
+    vmt  += Number(r[13])||0;
+    red  += Number(r[14])||0;
+    mnp  += Number(r[15])||0;
+
+    tbody.innerHTML += `<tr>
+      <td class="td-store">${r[2]||""}</td>
+      <td>${r[3]||0}</td>
+      <td>${r[4]||0}</td>
+      <td>${pctBadge(r[5])}</td>
+      <td>${r[6]||0}</td>
+      <td>${r[7]||0}</td>
+      <td>${pctBadge(r[8])}</td>
+      <td>${r[9]||0}</td>
+      <td>${r[10]||0}</td>
+      <td>${r[11]||0}</td>
+      <td>${r[12]||0}</td>
+      <td>${r[13]||0}</td>
+      <td>${r[14]||0}</td>
+      <td>${r[15]||0}</td>
+      <td>${pctBadge(r[16])}</td>
+    </tr>`;
   });
 
-  thead.appendChild(headerRow);
+  // Total row
+  const gaPct = gaT ? Math.round(gaS/gaT*100)+"%" : "0%";
+  const vpPct = vpT ? Math.round(vpS/vpT*100)+"%" : "0%";
+  tbody.innerHTML += `<tr class="tr-total">
+    <td>Total</td>
+    <td>${gaT}</td><td>${gaS}</td><td>${gaPct}</td>
+    <td>${vpT}</td><td>${vpS}</td><td>${vpPct}</td>
+    <td>${adsl}</td><td>${conn}</td><td>${ep}</td>
+    <td>${term}</td><td>${vmt}</td><td>${red}</td>
+    <td>${mnp}</td><td></td>
+  </tr>`;
 
-  data.forEach(row => {
-    const tr = document.createElement("tr");
-
-    row.forEach(cell => {
-      const td = document.createElement("td");
-      td.textContent = cell;
-
-      const color = getColor(cell);
-      if (color) {
-        td.style.backgroundColor = color;
-        td.style.fontWeight = "700";
-      }
-
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
+  document.getElementById("status").textContent = `${data.length} stores — ${fmtDate(normDate(data[0][1]))}`;
 }
 
 document.getElementById("load-btn").addEventListener("click", () => {
+  document.getElementById("status").textContent = "Loading…";
   fetch(API_URL)
-    .then(res => res.json())
+    .then(r => r.json())
     .then(res => {
-      const clean = processData(res.data);
-      const filtered = filterData(clean);
-      renderTable(filtered);
+      allClean = processData(res.data);
+      populateDates(allClean);
+      renderTable(filterData(allClean));
+    })
+    .catch(() => {
+      document.getElementById("status").textContent = "❌ Failed to load data";
     });
 });
 
+// Auto-reload when date/hour changes
+["sel-date","sel-hour"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    if (allClean.length) renderTable(filterData(allClean));
+  });
+});
+
+// Share
 document.getElementById("share-btn").addEventListener("click", async () => {
   const table = document.getElementById("table-wrap");
-
   const canvas = await html2canvas(table, { scale: 2 });
-
   canvas.toBlob(async (blob) => {
     const file = new File([blob], "sales.png", { type: "image/png" });
-
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: "North Upper Sales",
-        text: "Sales Report"
-      });
+      await navigator.share({ files: [file], title: "North Upper Sales", text: "Sales Report" });
     } else {
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -181,6 +308,5 @@ document.getElementById("share-btn").addEventListener("click", async () => {
   });
 });
 </script>
-
 </body>
-</html>
+</html> 
