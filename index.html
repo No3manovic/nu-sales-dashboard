@@ -45,6 +45,7 @@
     </select>
   </label>
   <button onclick="renderTable()">Show</button>
+  <button onclick="loadData()">Refresh</button>
 </div>
 
 <div id="msg">Loading data...</div>
@@ -75,6 +76,7 @@ const closest = hours.reduce((a,b) => Math.abs(b-h) < Math.abs(a-h) ? b : a);
 document.getElementById("sel-hour").value = closest;
 
 async function loadData() {
+  document.getElementById("msg").textContent = "Loading data...";
   try {
     const res = await fetch(SCRIPT_URL);
     const json = await res.json();
@@ -141,7 +143,6 @@ function renderTable() {
   table.innerHTML = "";
   let td;
 
-  // Row 1: North upper sales colspan 15
   const r0 = table.insertRow();
   td = document.createElement("th");
   td.className = "h-title";
@@ -149,7 +150,6 @@ function renderTable() {
   td.textContent = "North upper sales";
   r0.appendChild(td);
 
-  // Row 2: date + GAs + Voice points + ADSL..CR% (rowspan2)
   const r1 = table.insertRow();
   td = document.createElement("th"); td.className = "h-date"; td.textContent = displayDate; r1.appendChild(td);
   td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
@@ -158,7 +158,6 @@ function renderTable() {
     td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 2; td.textContent = h; r1.appendChild(td);
   });
 
-  // Row 3: Store, Target, Sales, %, Target, Sales, %
   const r2 = table.insertRow();
   ["Store","Target","Sales","%","Target","Sales","%"].forEach(h => {
     td = document.createElement("th");
@@ -284,4 +283,4 @@ function loadHtml2Canvas() {
 loadData();
 </script>
 </body>
-  </html> 
+</html>
