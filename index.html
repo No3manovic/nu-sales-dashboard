@@ -36,40 +36,50 @@ function normalizeDate(val) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
-// === NEW: fill D & F ===
 function fillMissingValues(data) {
   const result = [...data];
+  const currentMonth = new Date().getMonth();
 
   for (let i = 1; i < result.length; i++) {
     const row = result[i];
     const store = (row[2] || "").toString().trim().toLowerCase();
-
     if (!store) continue;
 
     const needD = row[3] === "" || row[3] === null || Number(row[3]) === 0;
     const needF = row[5] === "" || row[5] === null || Number(row[5]) === 0;
-
     if (!needD && !needF) continue;
+
+    const currHour = Number(row[17]);
 
     for (let j = i - 1; j >= 1; j--) {
       const prev = result[j];
       const prevStore = (prev[2] || "").toString().trim().toLowerCase();
+      const prevDate = new Date(prev[1]);
+      if (prevStore !== store || prevDate.getMonth() !== currentMonth) continue;
 
-      if (prevStore === store) {
-        if (needD && prev[3] !== "" && prev[3] !== null && Number(prev[3]) !== 0) {
-          row[3] = prev[3];
-        }
+      const prevHour = Number(prev[17]);
 
-        if (needF && prev[5] !== "" && prev[5] !== null && Number(prev[5]) !== 0) {
-          row[5] = prev[5];
-        }
-
-        break;
+      if (needD && prev[3] !== "" && prev[3] !== null && Number(prev[3]) !== 0) {
+        row[3] = adjustValueByHour(prev[3], prevHour, currHour);
       }
+      if (needF && prev[5] !== "" && prev[5] !== null && Number(prev[5]) !== 0) {
+        row[5] = adjustValueByHour(prev[5], prevHour, currHour);
+      }
+
+      if ((needD && row[3] !== "" && row[3] !== null) && (needF && row[5] !== "" && row[5] !== null)) break;
     }
   }
 
   return result;
+}
+
+function adjustValueByHour(val, prevHour, currHour) {
+  const num = Number(val);
+  if (isNaN(num)) return val;
+  let result = num;
+  if ((prevHour === 12 || prevHour === 3) && (currHour === 6 || currHour === 9)) result = num * 2;
+  if ((prevHour === 6 || prevHour === 9) && (currHour === 12 || currHour === 3)) result = num / 2;
+  return Math.round(result);
 }
 
 function filterRow(store, selDateTs, selHour) {
