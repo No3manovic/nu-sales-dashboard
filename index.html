@@ -1,128 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NU Tools</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #080810; --surface: #0F0F1A; --border: rgba(255,255,255,0.06);
-    --text: #F0F0F5; --muted: #5A5A7A; --accent: #F7C34F;
-    --green: #3DD68C; --blue: #4F8EF7;
-  }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 24px; overflow: hidden; position: relative;
-  }
-  body::before {
-    content: ''; position: fixed; top: -200px; left: 50%;
-    transform: translateX(-50%); width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(247,195,79,0.06) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .container {
-    max-width: 480px; width: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; gap: 28px; text-align: center;
-  }
-  .logo-wrap {
-    width: 88px; height: 88px; background: #1A1A2E;
-    border-radius: 24px; border: 2px solid rgba(247,195,79,0.25);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px; box-shadow: 0 0 60px rgba(247,195,79,0.08);
-    animation: float 3s ease-in-out infinite;
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
-  .title {
-    font-family: 'Syne', sans-serif; font-size: 32px;
-    font-weight: 800; color: var(--text); letter-spacing: 0.5px;
-  }
-  .subtitle { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NU Sales Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
 
-  .notice {
-    background: rgba(247,195,79,0.06);
-    border: 1px solid rgba(247,195,79,0.2);
-    border-radius: 12px; padding: 14px 18px;
-    display: flex; align-items: flex-start; gap: 10px;
-    text-align: left; width: 100%;
-  }
-  .notice-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .notice-text { font-size: 13px; color: var(--accent); line-height: 1.6; }
-  .notice-text strong { font-weight: 600; display: block; margin-bottom: 2px; }
+    /* ── Login ── */
+    #login-screen {
+      position: fixed; inset: 0;
+      background: #0f1117;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .login-card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .login-logo {
+      width: 48px; height: 48px;
+      background: #1a56a0;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 4px;
+    }
+    .login-title { text-align: center; color: #fff; font-size: 18px; font-weight: 700; }
+    .login-sub   { text-align: center; color: #9ca3af; font-size: 13px; margin-top: -10px; }
 
-  .cards { width: 100%; display: flex; flex-direction: column; gap: 12px; }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px 24px;
-    display: flex; align-items: center; gap: 16px;
-    text-decoration: none; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  }
-  .card:hover { transform: translateY(-2px); }
-  .card.android { border-color: rgba(61,214,140,0.2); }
-  .card.android:hover { border-color: rgba(61,214,140,0.5); box-shadow: 0 8px 32px rgba(61,214,140,0.08); }
-  .card.web { border-color: rgba(79,142,247,0.2); }
-  .card.web:hover { border-color: rgba(79,142,247,0.5); box-shadow: 0 8px 32px rgba(79,142,247,0.08); }
-  .card-icon {
-    width: 48px; height: 48px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; flex-shrink: 0;
-  }
-  .card.android .card-icon { background: rgba(61,214,140,0.1); border: 1px solid rgba(61,214,140,0.2); }
-  .card.web .card-icon { background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.2); }
-  .card-content { flex: 1; text-align: left; }
-  .card.android .card-title { font-size: 15px; font-weight: 600; color: var(--green); }
-  .card.web .card-title { font-size: 15px; font-weight: 600; color: var(--blue); }
-  .card-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .card-arrow { font-size: 16px; color: var(--muted); flex-shrink: 0; }
-  .footer { font-size: 12px; color: var(--muted); opacity: 0.5; }
-</style>
+    .login-field { display: flex; flex-direction: column; gap: 6px; }
+    .login-field label { color: #9ca3af; font-size: 12px; font-weight: 600; }
+    .login-field input {
+      padding: 11px 14px;
+      background: #1e2130;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+      transition: border-color .15s;
+    }
+    .login-field input:focus { border-color: #1a56a0; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 42px; }
+    .pw-eye {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #6b7280;
+      display: flex; align-items: center; padding: 0;
+    }
+    .pw-eye:hover { color: #9ca3af; }
+
+    .remember-row {
+      display: flex; align-items: center; gap: 8px;
+      color: #9ca3af; font-size: 13px; cursor: pointer;
+    }
+    .remember-row input { width: 16px; height: 16px; accent-color: #1a56a0; cursor: pointer; }
+
+    .login-error { color: #f87171; font-size: 12px; text-align: center; min-height: 16px; }
+
+    .login-btn {
+      padding: 12px;
+      background: #1a56a0;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .login-btn:hover { background: #1648880; }
+    .login-btn:disabled { opacity: .5; cursor: default; }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; width: 100%; flex-direction: column; align-items: center; gap: 12px; }
+    h2 { color: #1a56a0; font-size: 18px; }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+    .controls label { font-size: 13px; color: #444; font-weight: 600; }
+    .controls input, .controls select { padding: 7px 10px; border: 1px solid #aaa; border-radius: 6px; font-size: 13px; background: #fff; cursor: pointer; }
+    .controls button { padding: 7px 18px; background: #1a56a0; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .logout-btn { padding: 7px 14px; background: #dc2626; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    #table-wrap { overflow-x: auto; width: 100%; max-width: 1300px; }
+    table { border-collapse: collapse; font-size: 12px; background: #fff; width: 100%; }
+    th, td { border: 1px solid #999; padding: 5px 7px; text-align: center; white-space: nowrap; }
+    .h-title  { background: #1a56a0; color: #fff; font-weight: 700; font-size: 13px; }
+    .h-date   { background: #2271c3; color: #fff; font-weight: 600; }
+    .h-col    { background: #2e86de; color: #fff; font-weight: 600; }
+    .store-hd { background: #2e86de; color: #fff; font-weight: 600; text-align: center; }
+    .store    { text-align: center; font-weight: 500; }
+    .total    { background: #1a56a0; color: #fff; font-weight: 700; }
+    .pct-red  { background: #FF0000; color: #fff; font-weight: 700; }
+    .pct-yel  { background: #FFFF00; color: #000; font-weight: 700; }
+    .pct-grn  { background: #00B050; color: #fff; font-weight: 700; }
+    .total-pct-red { background: #FF0000; color: #fff; font-weight: 700; }
+    .total-pct-yel { background: #FFFF00; color: #000; font-weight: 700; }
+    .total-pct-grn { background: #00B050; color: #fff; font-weight: 700; }
+    #share-btn { padding: 12px 32px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    #msg { font-size: 13px; color: #555; text-align: center; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo-wrap">⚡</div>
 
-  <div>
-    <div class="title">NU Tools</div>
-    <div class="subtitle">Performance & Commission Tracker</div>
-  </div>
-
-  <div class="notice">
-    <div class="notice-icon">🚧</div>
-    <div class="notice-text">
-      <strong>We're currently running on these platforms</strong>
-      The full desktop web version is temporarily unavailable. Please use the Android app or the mobile web version below to access NU Tools.
+<!-- ── Login Screen ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
     </div>
-  </div>
+    <div>
+      <p class="login-title">NU Sales Dashboard</p>
+      <p class="login-sub">Sign in to continue</p>
+    </div>
 
-  <div class="cards">
-    <a class="card android" href="https://sipudzdeouzqjigyoazg.supabase.co/storage/v1/object/public/app_updates/NU%20tools_2026.6.1.3.apk">
-      <div class="card-icon">📱</div>
-      <div class="card-content">
-        <div class="card-title">Download Android App</div>
-        <div class="card-desc">Best experience — install the app on your device</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="inp-user" placeholder="Enter username" onkeydown="if(event.key==='Enter') doLogin()"/>
+    </div>
+
+    <div class="login-field">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="inp-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter') doLogin()"/>
+        <button class="pw-eye" onclick="togglePw()" type="button" id="eye-btn">
+          <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </button>
       </div>
-      <div class="card-arrow">→</div>
-    </a>
+    </div>
 
-    <a class="card web" href="https://nu-tools.no3man.xyz/">
-      <div class="card-icon">🌐</div>
-      <div class="card-content">
-        <div class="card-title">Open Web Version</div>
-        <div class="card-desc">Access NU Tools directly from your browser</div>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
+    <label class="remember-row">
+      <input type="checkbox" id="chk-remember"/> Remember me
+    </label>
+
+    <p class="login-error" id="login-error"></p>
+
+    <button class="login-btn" onclick="doLogin()" id="login-btn">Sign In</button>
   </div>
-
-  <div class="footer">NU Tools © 2026</div>
 </div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
+    <h2>North Upper Sales</h2>
+    <button class="logout-btn" onclick="doLogout()">🚪 Logout</button>
+  </div>
+
+  <div class="controls">
+    <label>Date: <input type="date" id="sel-date"/></label>
+    <label>Time:
+      <select id="sel-hour">
+        <option value="12">12:00 PM</option>
+        <option value="3">3:00 PM</option>
+        <option value="6">6:00 PM</option>
+        <option value="9">9:00 PM</option>
+      </select>
+    </label>
+    <button onclick="renderTable()">Show</button>
+    <button onclick="loadData()">Refresh</button>
+  </div>
+
+  <div id="msg">
+    <div id="spinner" style="display:none; width:32px; height:32px; border:4px solid #ccc; border-top-color:#1a56a0; border-radius:50%; animation:spin 0.8s linear infinite; margin:auto;"></div>
+    <span id="msg-text">Loading data...</span>
+  </div>
+
+  <div id="table-wrap" style="display:none;"><table id="sales-table"></table></div>
+  <button id="share-btn" style="display:none;" onclick="shareSnapshot()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+    Share
+  </button>
+</div>
+
+<script>
+// ─── Credentials (change here) ────────────────────────────────────────────────
+const VALID_USERS = [
+  { username: "admin",  password: "Northupper123" },
+  { username: "sales",  password: "Northupper123" },
+];
+
+// ─── Login logic ──────────────────────────────────────────────────────────────
+function togglePw() {
+  const inp = document.getElementById("inp-pass");
+  const open = document.getElementById("eye-open");
+  const closed = document.getElementById("eye-closed");
+  if (inp.type === "password") {
+    inp.type = "text";
+    open.style.display = "none";
+    closed.style.display = "block";
+  } else {
+    inp.type = "password";
+    open.style.display = "block";
+    closed.style.display = "none";
+  }
+}
+
+function doLogin() {
+  const user = document.getElementById("inp-user").value.trim();
+  const pass = document.getElementById("inp-pass").value;
+  const remember = document.getElementById("chk-remember").checked;
+  const errEl = document.getElementById("login-error");
+
+  const valid = VALID_USERS.find(u => u.username === user && u.password === pass);
+  if (!valid) {
+    errEl.textContent = "Incorrect username or password.";
+    return;
+  }
+
+  errEl.textContent = "";
+  if (remember) {
+    localStorage.setItem("nu_authed", "true");
+    localStorage.setItem("nu_user", user);
+  } else {
+    sessionStorage.setItem("nu_authed", "true");
+    sessionStorage.setItem("nu_user", user);
+  }
+
+  showDashboard();
+}
+
+function doLogout() {
+  localStorage.removeItem("nu_authed");
+  localStorage.removeItem("nu_user");
+  sessionStorage.removeItem("nu_authed");
+  sessionStorage.removeItem("nu_user");
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("dashboard").style.display = "none";
+}
+
+function showDashboard() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("dashboard").style.display = "flex";
+  loadData();
+}
+
+// Check if already logged in
+window.addEventListener("DOMContentLoaded", () => {
+  const authed = localStorage.getItem("nu_authed") || sessionStorage.getItem("nu_authed");
+  if (authed === "true") {
+    showDashboard();
+  }
+});
+
+// ─── Dashboard logic ──────────────────────────────────────────────────────────
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzR6OU35ubJBGhjDYonuiKXGCcx1y2HqD7lJLEaQf6JlZ8DTpp9S7ZSf5d6uKZJyMNc/exec";
+
+const STORES = [
+  "Abo Qurqas","Bany Sweif","Bany Sweef Nasser","Bany Sweef Sharq",
+  "El Fayoum","El-Menya","ElShawashna","El Fayoum Atsa","Senores","Beny Sweif Kornesh"
+];
+
+let rawData = [];
+
+const today = new Date();
+document.getElementById("sel-date").value = today.toISOString().split("T")[0];
+const h = today.getHours();
+const hours = [12,3,6,9];
+const closest = hours.reduce((a,b) => Math.abs(b-h) < Math.abs(a-h) ? b : a);
+document.getElementById("sel-hour").value = closest;
+
+async function loadData() {
+  document.getElementById("spinner").style.display = "block";
+  document.getElementById("msg-text").textContent = "";
+  try {
+    const res = await fetch(SCRIPT_URL);
+    const json = await res.json();
+    rawData = json.data;
+    document.getElementById("spinner").style.display = "none";
+    document.getElementById("msg-text").textContent = "";
+    renderTable();
+  } catch(err) {
+    document.getElementById("spinner").style.display = "none";
+    document.getElementById("msg-text").textContent = "Failed to load data.";
+  }
+}
+
+function normalizeDate(val) {
+  const d = new Date(val);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function filterRow(store, selDateTs, selHour) {
+  for (let i = 1; i < rawData.length; i++) {
+    const row = rawData[i];
+    const rowStore = (row[2] || "").toString().trim();
+    if (rowStore.toLowerCase() !== store.toLowerCase()) continue;
+    const rowDateTs = normalizeDate(row[1]);
+    if (rowDateTs !== selDateTs) continue;
+    const rowReport = parseInt(row[17]);
+    if (rowReport === selHour) return row;
+  }
+  return null;
+}
+
+function fmtPct(val) {
+  if (val === "" || val === null || val === undefined) return "";
+  const n = parseFloat(val);
+  if (isNaN(n)) return val;
+  return Math.round(n * 100) + "%";
+}
+
+function pctClass(val) {
+  const n = parseFloat(val);
+  if (isNaN(n) || val === "" || val === null) return "";
+  const p = n * 100;
+  if (p < 90)  return "pct-red";
+  if (p < 100) return "pct-yel";
+  return "pct-grn";
+}
+
+function totalPctClass(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return "total";
+  const p = n * 100;
+  if (p < 90)  return "total-pct-red";
+  if (p < 100) return "total-pct-yel";
+  return "total-pct-grn";
+}
+
+function renderTable() {
+  if (!rawData.length) return;
+
+  const selDateStr = document.getElementById("sel-date").value;
+  const selHour = parseInt(document.getElementById("sel-hour").value);
+  const selDateTs = normalizeDate(selDateStr + "T00:00:00");
+  const displayDate = new Date(selDateStr).toLocaleDateString("en-GB");
+
+  const table = document.getElementById("sales-table");
+  table.innerHTML = "";
+  let td;
+
+  const r0 = table.insertRow();
+  td = document.createElement("th");
+  td.className = "h-title"; td.colSpan = 15;
+  td.textContent = "North upper sales";
+  r0.appendChild(td);
+
+  const r1 = table.insertRow();
+  td = document.createElement("th"); td.className = "h-date"; td.textContent = displayDate; r1.appendChild(td);
+  td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "GAs"; r1.appendChild(td);
+  td = document.createElement("th"); td.className = "h-date"; td.colSpan = 3; td.textContent = "Voice points"; r1.appendChild(td);
+  ["ADSL","Connectivity","EP","Terminal","VMT","RED","MNP","CR%"].forEach(h => {
+    td = document.createElement("th"); td.className = "h-title"; td.rowSpan = 2; td.textContent = h; r1.appendChild(td);
+  });
+
+  const r2 = table.insertRow();
+  ["Store","Target","Sales","%","Target","Sales","%"].forEach(h => {
+    td = document.createElement("th");
+    td.className = h === "Store" ? "store-hd" : "h-col";
+    td.textContent = h;
+    r2.appendChild(td);
+  });
+
+  let totGAsT=0, totGAsS=0, totVPT=0, totVPS=0;
+  let totADSL=0, totConn=0, totEP=0, totTerm=0, totVMT=0, totRED=0, totMNP=0;
+  let crSum=0, crCount=0;
+
+  STORES.forEach(store => {
+    const row = filterRow(store, selDateTs, selHour);
+    const tr = table.insertRow();
+    let c;
+
+    const gasT  = row ? (parseFloat(row[5]) || 0) : 0;
+    const gasS  = row ? (parseFloat(row[6]) || 0) : 0;
+    const vpT   = row ? (parseFloat(row[3]) || 0) : 0;
+    const vpS   = row ? (parseFloat(row[4]) || 0) : 0;
+    const adsl  = row ? (parseFloat(row[7]) || 0) : 0;
+    const conn  = row ? (parseFloat(row[9]) || 0) : 0;
+    const ep    = row ? (parseFloat(row[10]) || 0) : 0;
+    const term  = row ? (parseFloat(row[12]) || 0) : 0;
+    const vmt   = row ? (parseFloat(row[13]) || 0) : 0;
+    const red   = row ? (parseFloat(row[14]) || 0) : 0;
+    const mnp   = row ? (parseFloat(row[15]) || 0) : 0;
+    const crRaw = row ? row[16] : "";
+    const crNum = row ? (parseFloat(row[16]) || 0) : 0;
+
+    const gasPct = gasT > 0 ? gasS / gasT : "";
+    const vpPct  = vpT  > 0 ? vpS  / vpT  : "";
+
+    totGAsT += gasT; totGAsS += gasS;
+    totVPT  += vpT;  totVPS  += vpS;
+    totADSL += adsl; totConn += conn; totEP += ep;
+    totTerm += term; totVMT  += vmt;  totRED += red; totMNP += mnp;
+    if (row) { crSum += crNum; crCount++; }
+
+    c = tr.insertCell(); c.className = "store"; c.textContent = store;
+    c = tr.insertCell(); c.textContent = row ? gasT : "";
+    c = tr.insertCell(); c.textContent = row ? gasS : "";
+    c = tr.insertCell(); c.className = row && gasPct !== "" ? pctClass(gasPct) : ""; c.textContent = row && gasPct !== "" ? fmtPct(gasPct) : "";
+    c = tr.insertCell(); c.textContent = row ? vpT : "";
+    c = tr.insertCell(); c.textContent = row ? vpS : "";
+    c = tr.insertCell(); c.className = row && vpPct !== "" ? pctClass(vpPct) : ""; c.textContent = row && vpPct !== "" ? fmtPct(vpPct) : "";
+    c = tr.insertCell(); c.textContent = row ? adsl : "";
+    c = tr.insertCell(); c.textContent = row ? conn : "";
+    c = tr.insertCell(); c.textContent = row ? ep   : "";
+    c = tr.insertCell(); c.textContent = row ? term : "";
+    c = tr.insertCell(); c.textContent = row ? vmt  : "";
+    c = tr.insertCell(); c.textContent = row ? red  : "";
+    c = tr.insertCell(); c.textContent = row ? mnp  : "";
+    c = tr.insertCell(); c.textContent = row ? fmtPct(crRaw) : "";
+  });
+
+  const totGAsPct = totGAsT > 0 ? totGAsS / totGAsT : 0;
+  const totVPPct  = totVPT  > 0 ? totVPS  / totVPT  : 0;
+  const totCR     = crCount > 0 ? crSum / crCount : 0;
+
+  const tr = table.insertRow();
+  let c;
+  c = tr.insertCell(); c.className = "total"; c.textContent = "Total";
+  c = tr.insertCell(); c.className = "total"; c.textContent = totGAsT;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totGAsS;
+  c = tr.insertCell(); c.className = totalPctClass(totGAsPct); c.textContent = fmtPct(totGAsPct);
+  c = tr.insertCell(); c.className = "total"; c.textContent = totVPT;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totVPS;
+  c = tr.insertCell(); c.className = totalPctClass(totVPPct); c.textContent = fmtPct(totVPPct);
+  c = tr.insertCell(); c.className = "total"; c.textContent = totADSL;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totConn;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totEP;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totTerm;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totVMT;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totRED;
+  c = tr.insertCell(); c.className = "total"; c.textContent = totMNP;
+  c = tr.insertCell(); c.className = "total"; c.textContent = fmtPct(totCR);
+
+  document.getElementById("table-wrap").style.display = "block";
+  document.getElementById("share-btn").style.display = "flex";
+}
+
+async function shareSnapshot() {
+  if (!navigator.share) { alert("Try from mobile."); return; }
+  try {
+    await loadHtml2Canvas();
+    const tableWrap = document.getElementById("table-wrap");
+    const table = document.getElementById("sales-table");
+    const originalOverflow = tableWrap.style.overflow;
+    const originalWidth = tableWrap.style.width;
+    tableWrap.style.overflow = "visible";
+    tableWrap.style.width = table.scrollWidth + "px";
+    const canvas = await html2canvas(tableWrap, {
+      scale: 2, useCORS: true,
+      width: table.scrollWidth,
+      windowWidth: table.scrollWidth
+    });
+    tableWrap.style.overflow = originalOverflow;
+    tableWrap.style.width = originalWidth;
+    canvas.toBlob(async blob => {
+      const file = new File([blob], "sales_snapshot.png", { type: "image/png" });
+      await navigator.share({ files: [file], title: "NU Sales Snapshot" });
+    }, "image/png");
+  } catch(err) { alert("Error: " + err.message); }
+}
+
+function loadHtml2Canvas() {
+  return new Promise((res, rej) => {
+    if (window.html2canvas) return res();
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+</script>
 </body>
-</html>
+   </html>
